@@ -9,6 +9,10 @@ Search recursively for files named "BEACON" starting from `root_path`.
 Returns a vector of full paths to all BEACON files found.
 """
 function find_beacons(root_path::AbstractString)
+    if !isdir(root_path)
+        error("Path does not exist or is not a directory: $root_path")
+    end
+    
     beacon_files = String[]
     
     # Walk through the directory tree
@@ -35,10 +39,16 @@ function read_beacon_hash(beacon_path::AbstractString)
     end
     
     # Read the first line which should contain the hash
-    open(beacon_path, "r") do f
+    hash = open(beacon_path, "r") do f
         line = readline(f)
-        return strip(line)
+        strip(line)
     end
+    
+    if isempty(hash)
+        error("BEACON file is empty or contains only whitespace: $beacon_path")
+    end
+    
+    return hash
 end
 
 """
@@ -48,6 +58,10 @@ Find all BEACON files and read their hashes.
 Returns a dictionary mapping file paths to their hash values.
 """
 function find_and_read_beacons(root_path::AbstractString)
+    if !isdir(root_path)
+        error("Path does not exist or is not a directory: $root_path")
+    end
+    
     beacon_files = find_beacons(root_path)
     results = Dict{String, String}()
     
@@ -56,7 +70,7 @@ function find_and_read_beacons(root_path::AbstractString)
             hash = read_beacon_hash(beacon_path)
             results[beacon_path] = hash
         catch e
-            @warn "Failed to read beacon at $beacon_path: $e"
+            @warn "Failed to read beacon at $beacon_path" exception=(e, catch_backtrace())
         end
     end
     
